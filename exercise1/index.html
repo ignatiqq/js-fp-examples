@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+    <script>
+        
+        // Tools
+
+        const curry = (fn) => {
+            const arity = fn.length;
+
+            return function $curry(...args) {
+                if(args.length < arity) {
+                    return $curry.bind(this, ...args);
+                }
+
+                return fn.call(this, ...args);
+            }
+        }
+
+        const compose = (...fns) => (...args) => fns.reduceRight((prev, next) => {
+            return next(prev)
+        }, args[0]);
+
+        // Tools
+
+        const Impure = {
+            getJSON: curry(async (callback, url) => {
+                const res = await fetch(url); 
+                callback(await res.json())
+            }),
+            setHtml: curry((parent, html) => {document.querySelector(parent).append(html);}),
+            trace: curry((tag, x) => {console.log(tag); return x;})
+        }
+
+        const templates = {
+            title: (str) => {
+                const title = document.createElement("h1");
+                const text = document.createTextNode(str);
+                title.append(text);
+                return title;
+            }
+        }
+
+        const url = t => `https://jsonplaceholder.typicode.com${t}`;
+
+        const getElementsByProp = curry((prop, arr) => arr.map(item => item[prop]));
+
+        const htmlTemplate = curry((template, arr) => {
+            const wrapper = document.createElement("div");
+
+            arr.map((item) => {
+                wrapper.append(template(item));
+            });
+
+            return wrapper;
+        });
+
+
+        const render = compose(Impure.setHtml('body'), Impure.trace("html"));
+        const toHtmlElement = compose(render, htmlTemplate(templates.title), getElementsByProp('title'));
+        const app = compose(Impure.getJSON(toHtmlElement), url);
+        
+        app('/todos');
+
+    </script>
+
+</body>
+</html>
